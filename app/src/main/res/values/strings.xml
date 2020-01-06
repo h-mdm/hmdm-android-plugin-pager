@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Pager</string>
+    <string name="action_purge">Purge messages</string>
+    <string name="purge_confirm">Are you sure you\'d like to remove all messages?</string>
+    <string name="remove">Remove</string>
+    <string name="cancel">Cancel</string>
+    <string name="messages_removed">All messages were removed.</string>
+    <string name="mdm_connect_error">Failed to connect with Headwind MDM. Please make sure you\'re running pager in the Headwind MDM launcher.</string>
+    <string name="notification_text">Headwind MDM Pager Service is active</string>
+    <string name="no_messages">No messages received yet</string>
+</resources>
