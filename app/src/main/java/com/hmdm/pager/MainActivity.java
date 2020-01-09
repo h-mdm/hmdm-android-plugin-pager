@@ -54,6 +54,7 @@ public class MainActivity extends AppCompatActivity implements MDMService.Result
             if (intent.getAction().equals(Const.ACTION_NEW_MESSAGE)) {
                 adapter.updateMessages();
                 adapter.notifyDataSetChanged();
+                updateItemState();
                 notifyMessagesRead();
             }
         }
