@@ -1,19 +1,31 @@
 apply plugin: 'com.android.application'
 
 android {
+    signingConfigs {
+        config {
+            storeFile file('D:\\projects\\controlled-launcher\\keystore\\keystore.jks')
+            keyAlias = 'kiosk'
+            keyPassword 'aGVhZHdpbmRSdWxlS2lvc2s='
+            storePassword 'aGVhZHdpbmRNYWlu'
+        }
+    }
     compileSdkVersion 28
     defaultConfig {
         applicationId "com.hmdm.pager"
         minSdkVersion 14
         targetSdkVersion 28
         versionCode 1
-        versionName "1.0"
+        versionName "1.01"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.config
+        }
+        debug {
+            signingConfig signingConfigs.config
         }
     }
 }
