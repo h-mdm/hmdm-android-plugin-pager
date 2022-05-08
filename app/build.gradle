@@ -22,7 +22,7 @@ apply plugin: 'com.android.application'
 android {
     signingConfigs {
         config {
-            storeFile file('D:\\projects\\controlled-launcher\\keystore\\keystore.jks')
+            storeFile file('C:\\home\\hmdm\\keystore\\keystore.jks')
             keyAlias = 'kiosk'
             keyPassword 'aGVhZHdpbmRSdWxlS2lvc2s='
             storePassword 'aGVhZHdpbmRNYWlu'
@@ -33,8 +33,8 @@ android {
         applicationId "com.hmdm.pager"
         minSdkVersion 14
         targetSdkVersion 28
-        versionCode 1
-        versionName "1.01"
+        versionCode 2
+        versionName "1.02"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
