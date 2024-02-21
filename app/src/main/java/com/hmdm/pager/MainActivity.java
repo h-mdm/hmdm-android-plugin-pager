@@ -258,7 +258,7 @@ public class MainActivity extends AppCompatActivity implements MDMService.Result
         private List<Message> messages;
         private Context context;
 
-        private DateFormat timeFormat = new SimpleDateFormat( "DD.MM.yy HH:mm" );
+        private DateFormat timeFormat = new SimpleDateFormat( "dd.MM.yy HH:mm" );
 
         public MessageAdapter(Context context) {
             this.context = context;
