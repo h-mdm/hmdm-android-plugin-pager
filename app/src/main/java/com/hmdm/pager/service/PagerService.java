@@ -19,13 +19,14 @@
 
 package com.hmdm.pager.service;
 
+import android.annotation.SuppressLint;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
+import android.content.pm.ServiceInfo;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
@@ -35,9 +36,9 @@ import androidx.core.app.NotificationCompat;
 
 import com.hmdm.MDMService;
 import com.hmdm.pager.Const;
-import com.hmdm.pager.receiver.MessageReceiver;
 import com.hmdm.pager.R;
 import com.hmdm.pager.SettingsHelper;
+import com.hmdm.pager.receiver.MessageReceiver;
 
 public class PagerService extends Service implements MDMService.ResultHandler {
 
@@ -78,18 +79,17 @@ public class PagerService extends Service implements MDMService.ResultHandler {
         }
     }
 
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
     @Override
     public void onCreate() {
         mdmService = MDMService.getInstance();
         mdmService.connect(this, this);
         startAsForeground();
 
-        messageReceiver = new MessageReceiver();
-        IntentFilter intentFilter = new IntentFilter(Const.INTENT_PUSH_NOTIFICATION_TYPE);
-        if(intentFilter != null)
-        {
-            registerReceiver(messageReceiver, intentFilter);
-        }
+        messageReceiver = new MessageReceiver(this);
+
+        String[] messageTypes = {Const.PUSH_MESSAGE_TYPE};
+        messageReceiver.register(messageTypes, this);
     }
 
     private void startAsForeground() {
@@ -101,7 +101,7 @@ public class PagerService extends Service implements MDMService.ResultHandler {
             notificationManager.createNotificationChannel(channel);
             builder = new NotificationCompat.Builder(this, CHANNEL_ID);
         } else {
-            builder = new NotificationCompat.Builder( this );
+            builder = new NotificationCompat.Builder(getApplicationContext());
         }
         Notification notification = builder
                 .setContentTitle( getString( R.string.app_name ) )
@@ -109,7 +109,11 @@ public class PagerService extends Service implements MDMService.ResultHandler {
                 .setContentText( getString( R.string.notification_text ) )
                 .setSmallIcon( R.drawable.ic_service ).build();
 
-        startForeground(NOTIFICATION_ID, notification );
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
+        } else {
+            startForeground(NOTIFICATION_ID, notification);
+        }
     }
 
     @Override
@@ -124,7 +128,8 @@ public class PagerService extends Service implements MDMService.ResultHandler {
     @Override
     public void onDestroy() {
         if (messageReceiver != null) {
-            unregisterReceiver(messageReceiver);
+            messageReceiver.unregister(this);
+            messageReceiver = null;
         }
         super.onDestroy();
     }

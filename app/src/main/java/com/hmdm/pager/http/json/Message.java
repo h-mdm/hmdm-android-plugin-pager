@@ -19,6 +19,7 @@
 
 package com.hmdm.pager.http.json;
 
+import android.annotation.SuppressLint;
 import android.database.Cursor;
 
 import org.json.JSONException;
@@ -47,6 +48,7 @@ public class Message {
         initDefaults();
     }
 
+    @SuppressLint("Range")
     public Message(Cursor cursor) {
         setId(cursor.getInt(cursor.getColumnIndex("_id")));
         setTs(cursor.getLong(cursor.getColumnIndex("ts")));

@@ -28,7 +28,7 @@ import com.hmdm.pager.MainActivity;
 public class StartActivityReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
-        Intent outIntent = new Intent(context, MainActivity.class);
+        Intent outIntent = new Intent(context.getApplicationContext(), MainActivity.class);
         outIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         context.startActivity( outIntent );
     }

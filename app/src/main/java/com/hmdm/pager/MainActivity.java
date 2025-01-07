@@ -19,10 +19,8 @@
 
 package com.hmdm.pager;
 
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
@@ -37,12 +35,14 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.hmdm.HeadwindMDM;
 import com.hmdm.MDMException;
+import com.hmdm.MDMPushHandler;
+import com.hmdm.MDMPushMessage;
 import com.hmdm.MDMService;
 import com.hmdm.pager.db.DatabaseHelper;
 import com.hmdm.pager.db.MessageTable;
@@ -55,27 +55,30 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements MDMService.ResultHandler {
+public class MainActivity extends AppCompatActivity implements HeadwindMDM.EventHandler {
 
     private SettingsHelper settings;
 
-    private MDMService mdmService;
+    private HeadwindMDM headwindMDM;
     private boolean mdmConnected = false;
 
     private TextView emptyTextView;
     private RecyclerView recyclerView;
     private MessageAdapter adapter;
     private RecyclerView.LayoutManager layoutManager;
+    private Handler receiveHandler = new Handler();
 
-    private BroadcastReceiver newMessageReceiver = new BroadcastReceiver() {
+    private MDMPushHandler mdmPushHandler = new MDMPushHandler() {
         @Override
-        public void onReceive(Context context, Intent intent) {
-            if (intent.getAction().equals(Const.ACTION_NEW_MESSAGE)) {
+        public void onMessageReceived(MDMPushMessage mdmPushMessage) {
+            // We need to save incoming message in the database by the service,
+            // So we implement a delay here
+            receiveHandler.postDelayed(() -> {
                 adapter.updateMessages();
                 adapter.notifyDataSetChanged();
                 updateItemState();
                 notifyMessagesRead();
-            }
+            }, 300);
         }
     };
 
@@ -100,7 +103,7 @@ public class MainActivity extends AppCompatActivity implements MDMService.Result
         recyclerView.addItemDecoration(dividerItemDecoration);
 
         settings = SettingsHelper.getInstance(this);
-        mdmService = MDMService.getInstance();
+        headwindMDM = HeadwindMDM.getInstance();
 
         Intent intent = new Intent(this, PagerService.class);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -141,18 +144,23 @@ public class MainActivity extends AppCompatActivity implements MDMService.Result
     protected void onResume() {
         super.onResume();
 
-        if (mdmConnected) {
-            queryMdm();
+        String[] messageTypes = {Const.PUSH_MESSAGE_TYPE};
+        mdmPushHandler.register(messageTypes, this);
+
+        if (!headwindMDM.isConnected()) {
+            if (!headwindMDM.connect(this, this)) {
+                // Your application is running outside Headwind MDM
+                Toast.makeText(MainActivity.this, getString(R.string.mdm_connect_error), Toast.LENGTH_LONG).show();
+            }
         } else {
-            mdmService.connect(this, this);
+            // Already connected, but settings may have changed
+            // when our app was in the background, so reload them
+            queryMdm();
         }
         updateItemState();
 
         adapter.updateMessages();
         adapter.notifyDataSetChanged();
-
-        LocalBroadcastManager.getInstance(this).registerReceiver(newMessageReceiver,
-                new IntentFilter(Const.ACTION_NEW_MESSAGE));
 
         notifyMessagesRead();
     }
@@ -160,8 +168,7 @@ public class MainActivity extends AppCompatActivity implements MDMService.Result
     @Override
     protected void onPause() {
         super.onPause();
-
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(newMessageReceiver);
+        mdmPushHandler.unregister(this);
     }
 
     private void updateItemState() {
@@ -217,31 +224,22 @@ public class MainActivity extends AppCompatActivity implements MDMService.Result
     }
 
     @Override
-    public void onMDMConnected() {
-        mdmConnected = true;
-        MDMService.Log.i(Const.LOG_TAG, "activity connected to Headwind MDM");
-
+    public void onHeadwindMDMConnected() {
+        // Connected to Headwind MDM, now you can load settings and use other MDM functions
+        MDMService.Log.i(Const.LOG_TAG, "Activity connected to Headwind MDM");
         queryMdm();
     }
 
     @Override
-    public void onMDMDisconnected() {
-        mdmConnected = false;
-
-        // Reconnect (this could be after crash of Headwind MDM!)
-        MDMService.Log.i(Const.LOG_TAG, "activity disconnected from Headwind MDM");
-        new Handler().postDelayed(new MDMReconnectRunnable(), Const.HMDM_RECONNECT_DELAY_FIRST);
+    public void onHeadwindMDMDisconnected() {
+        MDMService.Log.i(Const.LOG_TAG, "Activity disconnected from Headwind MDM");
     }
 
-    public class MDMReconnectRunnable implements Runnable {
-        @Override
-        public void run() {
-            if (!mdmService.connect(MainActivity.this, MainActivity.this)) {
-                // Retry in 1 minute
-                MDMService.Log.i(Const.LOG_TAG, "Failed to connect to Headwind MDM, scheduling connection");
-                new Handler().postDelayed(this, Const.HMDM_RECONNECT_DELAY_NEXT);
-            }
-        }
+    @Override
+    public void onHeadwindMDMConfigChanged() {
+        // Settings were changed on the server, you need to reload them
+        MDMService.Log.i(Const.LOG_TAG, "Reloading configuration from Headwind MDM");
+        queryMdm();
     }
 
     public static class MessageViewHolder extends RecyclerView.ViewHolder {
